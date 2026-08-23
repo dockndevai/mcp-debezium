@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/dockndevai/mcp-debezium/actions/workflows/ci.yml/badge.svg)](https://github.com/dockndevai/mcp-debezium/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![npm](https://img.shields.io/npm/v/@dockndevai/mcp-debezium)](https://www.npmjs.com/package/@dockndevai/mcp-debezium)
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for **Debezium** (via the **Kafka Connect** REST API). It lets an MCP-capable client (Claude Desktop, Claude Code, etc.) **monitor and manage change-data-capture connectors** — status, config, restarts, lifecycle — with behaviour controlled entirely by flags.
 
@@ -36,40 +37,81 @@ Safe by default: it starts read-only, can be scoped to an allowlist of connector
 
 **Admin** (`admin`): `delete_connector` (needs `DEBEZIUM_ALLOW_DELETE`)
 
-## Use with your MCP client
+## Quickstart — add to your agent
 
-Works with Claude Code, Claude Desktop, Cursor, OpenAI Codex CLI, Windsurf, VS Code (Copilot), and any other MCP client — see **[docs/CLIENTS.md](docs/CLIENTS.md)** for per-client setup.
+Published on npm as [`@dockndevai/mcp-debezium`](https://www.npmjs.com/package/@dockndevai/mcp-debezium). No clone or build needed — your MCP client runs it on demand with `npx`. **Start in `read-only` mode**; see [`.env.example`](.env.example) for every variable and [docs/CLIENTS.md](docs/CLIENTS.md) for the full per-client guide.
 
-## Install
+**Claude Code** (CLI)
 
 ```bash
-npm install
-npm run build
+claude mcp add debezium -e CONNECT_URL="http://localhost:8083" -e DEBEZIUM_MODE="read-only" -- npx -y @dockndevai/mcp-debezium
 ```
 
-## Run with Claude Desktop / Claude Code
+**Claude Desktop · Cursor · Windsurf** — same block in `claude_desktop_config.json`, `.cursor/mcp.json`, or `~/.codeium/windsurf/mcp_config.json`:
 
 ```json
 {
   "mcpServers": {
     "debezium": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-debezium/dist/index.js"],
+      "command": "npx",
+      "args": [
+        "-y",
+        "@dockndevai/mcp-debezium"
+      ],
       "env": {
-        "CONNECT_URL": "http://connect:8083",
-        "DEBEZIUM_MODE": "read-only",
-        "DEBEZIUM_PROTECTED_CONNECTORS": "pg-prod-orders"
+        "CONNECT_URL": "http://localhost:8083",
+        "DEBEZIUM_MODE": "read-only"
       }
     }
   }
 }
 ```
 
-### Example prompts
+**OpenAI Codex CLI** — in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.debezium]
+command = "npx"
+args = ["-y", "@dockndevai/mcp-debezium"]
+env = { CONNECT_URL = "http://localhost:8083", DEBEZIUM_MODE = "read-only" }
+```
+
+**VS Code (GitHub Copilot, Agent mode)** — in `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "debezium": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@dockndevai/mcp-debezium"
+      ],
+      "env": {
+        "CONNECT_URL": "http://localhost:8083",
+        "DEBEZIUM_MODE": "read-only"
+      }
+    }
+  }
+}
+```
+
+## Example prompts
 
 - *"Which connectors are FAILED, and why?"*
 - *"Restart the failed task on `pg-orders`."* (needs `read-write`)
 - *"Show the config for `mysql-inventory`."* (credentials come back redacted)
+
+## Run from source (development)
+
+Prefer the published package above. To run from a clone:
+
+```bash
+npm install
+npm run build
+node dist/index.js   # with the environment variables set
+```
 
 ## Develop
 
