@@ -1,5 +1,5 @@
 {
-  "name": "mcp-debezium",
+  "name": "@dockndevai/mcp-debezium",
   "mcpName": "io.github.dockndevai/mcp-debezium",
   "version": "0.1.0",
   "description": "Model Context Protocol server for Debezium / Kafka Connect — monitor and manage CDC connectors with security modes and access-control flags.",
