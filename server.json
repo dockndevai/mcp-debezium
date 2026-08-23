@@ -1,34 +1,33 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.dockndevai/mcp-debezium",
-  "description": "Model Context Protocol server for Debezium / Kafka Connect — monitor and manage CDC connectors with security modes and access-control flags.",
-  "status": "active",
+  "description": "Debezium / Kafka Connect CDC connector management for AI agents — governed, secret-safe.",
+  "version": "0.1.0",
   "repository": {
     "url": "https://github.com/dockndevai/mcp-debezium",
     "source": "github"
   },
-  "version": "0.1.0",
   "packages": [
     {
-      "registry_type": "npm",
-      "registry_base_url": "https://registry.npmjs.org",
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@dockndevai/mcp-debezium",
       "version": "0.1.0",
       "transport": {
         "type": "stdio"
       },
-      "environment_variables": [
+      "environmentVariables": [
         {
           "name": "CONNECT_URL",
           "description": "Base URL of the Kafka Connect REST API.",
-          "is_required": false,
-          "is_secret": false
+          "isRequired": false,
+          "isSecret": false
         },
         {
           "name": "DEBEZIUM_MODE",
           "description": "Access mode: read-only | read-write | admin.",
-          "is_required": false,
-          "is_secret": false
+          "isRequired": false,
+          "isSecret": false
         }
       ]
     }
