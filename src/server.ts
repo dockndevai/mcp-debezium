@@ -15,7 +15,7 @@ export function buildServer(config: AppConfig): { server: McpServer; enabled: st
   const client = new ConnectClient(config.connection);
   const ctx: ToolContext = { client, policy };
 
-  const server = new McpServer({ name: "mcp-debezium", version: "0.1.1" });
+  const server = new McpServer({ name: "mcp-debezium", version: "0.1.2" });
 
   const enabled: string[] = [];
   for (const tool of ALL_TOOLS) {
