@@ -17,7 +17,7 @@ export const adminTools: ToolDef[] = [
         "DEBEZIUM_ALLOW_DELETE=true. Does not delete already-produced Kafka messages, but stops CDC. Irreversible.",
       inputSchema: { name: z.string().describe("Connector name") },
     },
-    handler: async (args, { client, policy }) => {
+    handler: async (args, { client, policy, confirm }) => {
       const name = args.name as string;
       const { dryRun } = policy.guard({
         tool: "delete_connector",
@@ -26,6 +26,8 @@ export const adminTools: ToolDef[] = [
         destructive: true,
       });
       if (dryRun) return textResult(`[dry-run] Would delete connector '${name}'.`);
+      const ok = await confirm.confirm({ action: "delete connector (stops CDC)", target: name });
+      if (!ok.approved) return textResult(`Deletion cancelled — ${ok.reason}.`);
       await client.deleteConnector(name);
       return jsonResult({ deleted: true, connector: name });
     },
