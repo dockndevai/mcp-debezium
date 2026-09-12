@@ -14,7 +14,7 @@ export const writeTools: ToolDef[] = [
         "Provide the full connector.class and its properties.",
       inputSchema: {
         name: z.string().describe("Connector name"),
-        config: z.record(z.any()).describe("Connector config map (must include connector.class)"),
+        config: z.record(z.string(), z.any()).describe("Connector config map (must include connector.class)"),
       },
     },
     handler: async (args, { client, policy }) => {
@@ -35,7 +35,7 @@ export const writeTools: ToolDef[] = [
       description: "Replace a connector's configuration (PUT semantics — send the complete config).",
       inputSchema: {
         name: z.string().describe("Connector name"),
-        config: z.record(z.any()).describe("Complete replacement config map"),
+        config: z.record(z.string(), z.any()).describe("Complete replacement config map"),
       },
     },
     handler: async (args, { client, policy }) => {
