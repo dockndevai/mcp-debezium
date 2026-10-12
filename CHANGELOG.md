@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-10-12
+
+### Security
+- Dependency/security maintenance: `npm audit fix` cleared 2 high + 1 critical transitive advisories (`@modelcontextprotocol/sdk`'s `express`→`proxy-addr` IP-spoofing issue, and vitest's `vite`→`postcss`→`source-map-js` DoS issue). In-range patch/minor bumps for `@types/node`, `tsx`, `vitest`, and `zod`. `npm audit` now reports 0 vulnerabilities.
+
 ## [0.3.0] - 2026-09-29
 
 ### Added
