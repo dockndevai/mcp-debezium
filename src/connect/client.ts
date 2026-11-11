@@ -125,29 +125,37 @@ export class ConnectClient {
    * the connector does not exist; throws on any other transport error.
    */
   async connectorVersion(name: string): Promise<string | undefined> {
-    let info: Record<string, unknown> | undefined;
+    const info = await this.readConnector(name);
+    return info ? connectorVersionToken(info, name) : undefined;
+  }
+
+  /** The connector's info (name, type, config, tasks), or undefined if it does not exist. Throws on other errors. */
+  async readConnector(name: string): Promise<Record<string, unknown> | undefined> {
     try {
-      info = (await this.getConnector(name)).data;
+      return (await this.getConnector(name)).data;
     } catch (err) {
       if (err instanceof ConnectError && err.status === 404) return undefined;
       throw err;
     }
-    if (!info) return undefined;
-    const config = redactConfig((info.config as Record<string, unknown> | undefined) ?? {});
-    const tasks = ((info.tasks as Array<{ task?: number }> | undefined) ?? [])
-      .map((t) => t.task)
-      .filter((t): t is number => typeof t === "number")
-      .sort((a, b) => a - b);
-    const canonical = JSON.stringify({
-      name: info.name ?? name,
-      type: info.type ?? null,
-      config: Object.fromEntries(Object.entries(config).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))),
-      tasks,
-    });
-    return createHash("sha256").update(canonical).digest("hex").slice(0, 12);
   }
 
   deleteConnector(name: string) {
     return this.request<void>("DELETE", `/connectors/${encodeURIComponent(name)}`);
   }
+}
+
+/** The version token of an already-fetched connector info payload. See `ConnectClient.connectorVersion`. */
+export function connectorVersionToken(info: Record<string, unknown>, name: string): string {
+  const config = redactConfig((info.config as Record<string, unknown> | undefined) ?? {});
+  const tasks = ((info.tasks as Array<{ task?: number }> | undefined) ?? [])
+    .map((t) => t.task)
+    .filter((t): t is number => typeof t === "number")
+    .sort((a, b) => a - b);
+  const canonical = JSON.stringify({
+    name: info.name ?? name,
+    type: info.type ?? null,
+    config: Object.fromEntries(Object.entries(config).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))),
+    tasks,
+  });
+  return createHash("sha256").update(canonical).digest("hex").slice(0, 12);
 }

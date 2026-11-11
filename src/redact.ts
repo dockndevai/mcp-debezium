@@ -7,7 +7,12 @@
 const SECRET_KEY_PATTERN =
   /(password|passwd|secret|token|credential|apikey|api_key|access[._-]?key|private[._-]?key|sasl\.jaas\.config|ssl\.key|keystore|truststore)/i;
 
-const REDACTED = "***REDACTED***";
+export const REDACTED = "***REDACTED***";
+
+/** Whether a config key looks like it holds a secret (same pattern the redaction below uses). */
+export function isSecretKey(key: string): boolean {
+  return SECRET_KEY_PATTERN.test(key);
+}
 
 /** Redact secret-shaped keys in a flat connector config map. */
 export function redactConfig(config: Record<string, unknown>): Record<string, unknown> {

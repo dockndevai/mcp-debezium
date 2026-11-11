@@ -1,7 +1,25 @@
 import { z } from "zod";
+import { connectorVersionToken } from "../connect/client.js";
+import { describeConfig, describeConfigChange } from "../configDiff.js";
 import { redactDeep } from "../redact.js";
 import type { ToolDef } from "./types.js";
 import { jsonResult, textResult } from "./types.js";
+
+/**
+ * A probe whose FIRST read is the version already shown to the human (taken from the same read the
+ * prompt's diff was built from) and whose later reads hit the live system. The pre-prompt read therefore
+ * matches exactly what the human saw, and the post-prompt read catches any change after that.
+ */
+function pinned(shown: string | undefined, live: () => Promise<string | undefined>): () => Promise<string | undefined> {
+  let first = true;
+  return async () => {
+    if (first) {
+      first = false;
+      return shown;
+    }
+    return live();
+  };
+}
 
 export const writeTools: ToolDef[] = [
   {
@@ -17,12 +35,22 @@ export const writeTools: ToolDef[] = [
         config: z.record(z.string(), z.any()).describe("Connector config map (must include connector.class)"),
       },
     },
-    handler: async (args, { client, policy }) => {
+    handler: async (args, { client, policy, confirm }) => {
       const name = args.name as string;
       const config = args.config as Record<string, unknown>;
       const { dryRun } = policy.guard({ tool: "create_connector", capability: "write", connector: name });
       if (dryRun)
         return textResult(`[dry-run] Would create connector '${name}' with ${Object.keys(config).length} config keys.`);
+      const existing = await client.readConnector(name);
+      if (existing) return textResult(`Create cancelled — a connector named '${name}' already exists (use update_connector_config).`);
+      // The pinned "version" is absence: a connector of the same name appearing during the prompt refuses the create.
+      const ok = await confirm.confirm({
+        action: "create connector (starts a new CDC pipeline)",
+        target: name,
+        details: { config: describeConfig(config) },
+        probe: pinned(undefined, () => client.connectorVersion(name)),
+      });
+      if (!ok.approved) return textResult(`Create cancelled — ${ok.reason}.`);
       const res = await client.createConnector(name, config);
       return jsonResult(redactDeep(res.data));
     },
@@ -38,7 +66,7 @@ export const writeTools: ToolDef[] = [
         config: z.record(z.string(), z.any()).describe("Complete replacement config map"),
       },
     },
-    handler: async (args, { client, policy }) => {
+    handler: async (args, { client, policy, confirm }) => {
       const name = args.name as string;
       const config = args.config as Record<string, unknown>;
       const { dryRun } = policy.guard({
@@ -47,6 +75,15 @@ export const writeTools: ToolDef[] = [
         connector: name,
       });
       if (dryRun) return textResult(`[dry-run] Would update config of connector '${name}'.`);
+      // One read feeds both the diff the human sees and the pinned version token.
+      const current = await client.readConnector(name);
+      const ok = await confirm.confirm({
+        action: "replace connector config (changes a running CDC pipeline)",
+        target: name,
+        details: { "config change": describeConfigChange(current?.config as Record<string, unknown> | undefined, config) },
+        probe: pinned(current ? connectorVersionToken(current, name) : undefined, () => client.connectorVersion(name)),
+      });
+      if (!ok.approved) return textResult(`Update cancelled — ${ok.reason}.`);
       const res = await client.updateConnectorConfig(name, config);
       return jsonResult(redactDeep(res.data));
     },

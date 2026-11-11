@@ -13,7 +13,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   passed). A prompt nobody answered therefore auto-approved a destructive operation. A timeout is now a
   refusal, and the wait defaults to 5 minutes.
 
+- **Secrets no longer reach laya-guard.** The guard `command` was built as `tool + JSON.stringify(rawArgs)`,
+  so `create_connector` / `update_connector_config` sent `database.password` (and other secret-shaped config
+  values) to the guard daemon, showed them unredacted in the guard confirmation prompt, and wrote the first
+  200 characters to the guard log. Arguments are now redacted (`redact.ts`, then the canonical form from
+  `elicit.ts`) once, before they are shown in any prompt, hashed into the fingerprint, sent to the guard or
+  logged.
+
 ### Added
+- **`create_connector` and `update_connector_config` now ask the human before changing a CDC pipeline.**
+  `update_connector_config` shows a secret-redacted `current → new` config diff (a changed secret is reported
+  as "changed", never printed) and pins the connector's version token across the prompt: it is refused if the
+  connector changed while the human was deciding, including between the diff being read and the prompt being
+  sent. `update_connector_config` on a name that does not exist (Kafka Connect's PUT would create it) says so.
+  `create_connector` shows the exact redacted config and is refused if a connector of that name appears
+  during the prompt; it also stops early if one already exists. `DEBEZIUM_REQUIRE_HUMAN_APPROVAL=true`
+  applies to both. Dry-run is unchanged (no network call, no prompt).
 - **Approvals are bound to the exact action.** The prompt shows the tool, the full (secret-redacted)
   arguments and a fingerprint; every approval and refusal is written to the audit log as
   `"audit":"approval"` with the fingerprint, resource version and `approvedBy` (`human` / `flag-only`).
