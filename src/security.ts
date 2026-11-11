@@ -32,6 +32,8 @@ export interface SecurityConfig {
   /** Validate + log writes without sending them to Kafka Connect. */
   dryRun: boolean;
   auditLog: boolean;
+  /** Refuse destructive ops that no human can approve (no elicitation support) instead of trusting the flags alone. */
+  requireHumanApproval: boolean;
 }
 
 export class PolicyError extends Error {

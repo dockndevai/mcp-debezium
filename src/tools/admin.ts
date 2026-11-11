@@ -26,7 +26,12 @@ export const adminTools: ToolDef[] = [
         destructive: true,
       });
       if (dryRun) return textResult(`[dry-run] Would delete connector '${name}'.`);
-      const ok = await confirm.confirm({ action: "delete connector (stops CDC)", target: name });
+      const ok = await confirm.confirm({
+        action: "delete connector (stops CDC)",
+        target: name,
+        typed: true,
+        probe: () => client.connectorVersion(name),
+      });
       if (!ok.approved) return textResult(`Deletion cancelled — ${ok.reason}.`);
       await client.deleteConnector(name);
       return jsonResult({ deleted: true, connector: name });
