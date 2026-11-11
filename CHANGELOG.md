@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-11
+
+### Security
+- **Approval no longer fails open on timeout.** The human-approval prompt used the MCP SDK's default
+  60 s request timeout, and a timeout fell through to "approved" (the `*_ALLOW_DELETE` gate had already
+  passed). A prompt nobody answered therefore auto-approved a destructive operation. A timeout is now a
+  refusal, and the wait defaults to 5 minutes.
+
+### Added
+- **Approvals are bound to the exact action.** The prompt shows the tool, the full (secret-redacted)
+  arguments and a fingerprint; every approval and refusal is written to the audit log as
+  `"audit":"approval"` with the fingerprint, resource version and `approvedBy` (`human` / `flag-only`).
+- **Approvals are bound to the target's version.** `delete_connector` reads a version token before the
+  prompt and again after the human answers, and refuses if it changed. Kafka Connect has no etag, so the
+  token is a hash of the connector's name, type, secret-redacted config and task layout; the running
+  state is excluded and secret values are never hashed (a rotated password is not detected).
+- `DEBEZIUM_REQUIRE_HUMAN_APPROVAL=true` — refuse destructive ops when the client cannot elicit.
+- `delete_connector` asks the human to type the connector name.
+
+Tracking issue: https://github.com/dockndevai/mcp-core/issues/1
+
 ## [0.3.5] - 2026-11-09
 
 ### Changed

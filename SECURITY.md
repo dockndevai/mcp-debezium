@@ -19,6 +19,14 @@ agent. Treat it like any other privileged automation and grant it least access.
   to limit scope entirely.
 - **Gate deletion explicitly.** `delete_connector` requires both `admin` mode and
   `DEBEZIUM_ALLOW_DELETE=true`.
+- **Require a human for destructive ops.** Set `DEBEZIUM_REQUIRE_HUMAN_APPROVAL=true` so `delete_connector`
+  is refused when the client cannot show an approval prompt. Each approval is bound to the exact tool and
+  arguments (fingerprint) and to the connector's version token; if the connector changed while the human was
+  deciding, the action is refused. `delete_connector` also asks the human to type the connector name.
+  Kafka Connect has no etag, so the version token is a hash of the connector's name, type, secret-redacted
+  config and task layout (task ids). It deliberately excludes the running state and never includes secret
+  values, so a rotated password is not detected. Approval receipts are written to the audit log
+  (`"audit":"approval"`, with `approvedBy` = `human` or `flag-only`).
 - **Preview with dry-run.** `DEBEZIUM_DRY_RUN=true` validates and logs write intent
   without contacting Kafka Connect.
 - **Keep the audit log on.** `DEBEZIUM_AUDIT_LOG=true` (default) writes a JSON line

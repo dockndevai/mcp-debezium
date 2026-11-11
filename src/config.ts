@@ -54,6 +54,7 @@ export function loadConfig(): AppConfig {
       allowDelete: bool("DEBEZIUM_ALLOW_DELETE", false),
       dryRun: bool("DEBEZIUM_DRY_RUN", false),
       auditLog: bool("DEBEZIUM_AUDIT_LOG", true),
+      requireHumanApproval: bool("DEBEZIUM_REQUIRE_HUMAN_APPROVAL", false),
     },
   };
 }

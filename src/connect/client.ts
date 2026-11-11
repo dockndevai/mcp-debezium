@@ -2,7 +2,9 @@
  * Thin fetch-based client for the Kafka Connect REST API (which Debezium runs on).
  * See https://kafka.apache.org/documentation/#connect_rest
  */
+import { createHash } from "node:crypto";
 import type { ConnectConnection } from "../config.js";
+import { redactConfig } from "../redact.js";
 
 export class ConnectError extends Error {
   constructor(
@@ -108,6 +110,41 @@ export class ConnectClient {
       "POST",
       `/connectors/${encodeURIComponent(name)}/tasks/${taskId}/restart`,
     );
+  }
+
+  /**
+   * Version token for a connector, pinned across an approval prompt. Kafka Connect has no etag, so this is
+   * a hash of what defines the connector: its name, type (source/sink), the SECRET-REDACTED config (secret
+   * values never enter the hash, so they can never leak through it) and its task layout (task ids). The
+   * running state/status is deliberately excluded — it changes on its own (RUNNING <-> RESTARTING, task
+   * failures) and would make every approval fail. Limits: a changed secret (e.g. `database.password`
+   * rotated) is NOT detected because secrets are redacted before hashing, and a connector deleted and
+   * recreated with an identical config under the same name is not distinguishable. A connector
+   * created moments earlier may not have its task configs generated yet, so its task list can still grow.
+   * Returns undefined if
+   * the connector does not exist; throws on any other transport error.
+   */
+  async connectorVersion(name: string): Promise<string | undefined> {
+    let info: Record<string, unknown> | undefined;
+    try {
+      info = (await this.getConnector(name)).data;
+    } catch (err) {
+      if (err instanceof ConnectError && err.status === 404) return undefined;
+      throw err;
+    }
+    if (!info) return undefined;
+    const config = redactConfig((info.config as Record<string, unknown> | undefined) ?? {});
+    const tasks = ((info.tasks as Array<{ task?: number }> | undefined) ?? [])
+      .map((t) => t.task)
+      .filter((t): t is number => typeof t === "number")
+      .sort((a, b) => a - b);
+    const canonical = JSON.stringify({
+      name: info.name ?? name,
+      type: info.type ?? null,
+      config: Object.fromEntries(Object.entries(config).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))),
+      tasks,
+    });
+    return createHash("sha256").update(canonical).digest("hex").slice(0, 12);
   }
 
   deleteConnector(name: string) {
