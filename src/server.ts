@@ -1,8 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { AppConfig } from "./config.js";
 import { ConnectClient, ConnectError } from "./connect/client.js";
-import { makeConfirmer } from "./elicit.js";
+import { canonicalArgs, makeConfirmer } from "./elicit.js";
 import { GuardClient, loadGuardConfig } from "./guard.js";
+import { redactDeep } from "./redact.js";
 import { PolicyError, SecurityPolicy } from "./security.js";
 import { adminTools } from "./tools/admin.js";
 import { readTools } from "./tools/read.js";
@@ -30,11 +31,14 @@ export function buildServer(config: AppConfig): { server: McpServer; enabled: st
     enabled.push(tool.name);
     server.registerTool(tool.name, { ...tool.config, annotations: annotationsFor(tool) }, async (args: Record<string, unknown>) => {
       try {
+        // Secrets (database.password, sasl.jaas.config …) are redacted ONCE, here, before the arguments are
+        // shown in any prompt, hashed into the fingerprint, sent to laya-guard or written to a log.
+        const shown = redactDeep(args ?? {});
         // Every approval prompt in this call is bound to this tool + these exact arguments.
-        const callCtx: ToolContext = { ...ctx, confirm: confirmer.forCall(tool.name, args ?? {}) };
+        const callCtx: ToolContext = { ...ctx, confirm: confirmer.forCall(tool.name, shown) };
         // laya-guard: assess every mutating op before it runs (no-op unless *_GUARD_MODE is set).
         if (tool.capability !== "read") {
-          await guard.enforce({ tool: tool.name, command: `${tool.name} ${JSON.stringify(args ?? {})}`, context: tool.name }, callCtx.confirm);
+          await guard.enforce({ tool: tool.name, command: `${tool.name} ${canonicalArgs(shown)}`, context: tool.name }, callCtx.confirm);
         }
         return await tool.handler(args ?? {}, callCtx);
       } catch (err) {

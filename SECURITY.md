@@ -19,13 +19,17 @@ agent. Treat it like any other privileged automation and grant it least access.
   to limit scope entirely.
 - **Gate deletion explicitly.** `delete_connector` requires both `admin` mode and
   `DEBEZIUM_ALLOW_DELETE=true`.
-- **Require a human for destructive ops.** Set `DEBEZIUM_REQUIRE_HUMAN_APPROVAL=true` so `delete_connector`
-  is refused when the client cannot show an approval prompt. Each approval is bound to the exact tool and
+- **Require a human for destructive ops.** Set `DEBEZIUM_REQUIRE_HUMAN_APPROVAL=true` so `delete_connector`,
+  `create_connector` and `update_connector_config` are refused when the client cannot show an approval prompt.
+  `update_connector_config` shows the human a secret-redacted `current → new` config diff and `create_connector`
+  the exact redacted config; values under secret-shaped keys (`password`, `secret`, `token`, `sasl.jaas.config` …) never appear in the prompt, the fingerprint input, the audit log or
+  the laya-guard request/log (a changed secret is shown only as "changed"). Each approval is bound to the exact tool and
   arguments (fingerprint) and to the connector's version token; if the connector changed while the human was
   deciding, the action is refused. `delete_connector` also asks the human to type the connector name.
   Kafka Connect has no etag, so the version token is a hash of the connector's name, type, secret-redacted
   config and task layout (task ids). It deliberately excludes the running state and never includes secret
-  values, so a rotated password is not detected. Approval receipts are written to the audit log
+  values, so a rotated password is not detected (for `update_connector_config` the diff still tells the human
+  that a secret value changes). Approval receipts are written to the audit log
   (`"audit":"approval"`, with `approvedBy` = `human` or `flag-only`).
 - **Preview with dry-run.** `DEBEZIUM_DRY_RUN=true` validates and logs write intent
   without contacting Kafka Connect.

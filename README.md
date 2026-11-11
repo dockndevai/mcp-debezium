@@ -27,8 +27,8 @@ Safe by default: it starts read-only, can be scoped to an allowlist of connector
 | Can it delete? | `DEBEZIUM_ALLOW_DELETE` | `false` | `delete_connector` needs this **and** admin mode. |
 | Preview without touching Connect | `DEBEZIUM_DRY_RUN` | `false` | Write/admin tools validate + log intent, then return. |
 | Audit trail | `DEBEZIUM_AUDIT_LOG` | `true` | Emits a JSON line to stderr per guarded operation. |
-| Interactive confirmation | *(automatic)* | — | Destructive & high-impact actions prompt the human to approve via MCP elicitation before running. The prompt shows the tool, the exact arguments and a fingerprint; the target's version is pinned across the prompt and the action is refused if it changed; a prompt nobody answers is a refusal. |
-| Require a human | `DEBEZIUM_REQUIRE_HUMAN_APPROVAL` | `false` | When `true`, destructive ops are **refused** if the client cannot elicit (instead of falling back to the `*_ALLOW_*` gate alone). |
+| Interactive confirmation | *(automatic)* | — | Destructive & high-impact actions prompt the human to approve via MCP elicitation before running. The prompt shows the tool, the exact (secret-redacted) arguments and a fingerprint (for `update_connector_config` a redacted `current → new` config diff, for `create_connector` the redacted config); the target's version is pinned across the prompt and the action is refused if it changed; a prompt nobody answers is a refusal. |
+| Require a human | `DEBEZIUM_REQUIRE_HUMAN_APPROVAL` | `false` | When `true`, `delete_connector`, `create_connector` and `update_connector_config` are **refused** if the client cannot elicit (instead of falling back to the `*_ALLOW_*` gate alone). |
 | Credential redaction | *(always on)* | — | Secret-shaped config values are redacted before return. |
 
 ## Tools
